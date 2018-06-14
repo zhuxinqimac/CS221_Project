@@ -6,7 +6,7 @@ Pca reduction on each descriptor is set to false by default.
 """
 import computeIDTF, IDT_feature, computeFV
 import numpy as np
-import sys, os, random
+import sys, os, random, glob
 from yael import ynumpy
 from tempfile import TemporaryFile
 import argparse
@@ -14,7 +14,7 @@ import argparse
 GMM_dir = "./GMM_IDTFs"
 
 
-def populate_gmms(sample_vids, GMM_OUT, k_gmm, sample_size=1500000, PCA=False):
+def populate_gmms(sample_vids, GMM_OUT, k_gmm, sample_size=256000, PCA=False):
     """
     sample_size is the number of IDTFs that we sample from the total_lines number of IDTFs
     that were computed previously.
@@ -24,9 +24,12 @@ def populate_gmms(sample_vids, GMM_OUT, k_gmm, sample_size=1500000, PCA=False):
 
     Returns the list of gmms.
     """
-    #total_lines = 2488317
-    total_lines = total_IDTF_lines()
-    print total_lines
+    # total_lines = 3000
+    # total_lines = 158638780-787-1323 # ucf101
+    total_lines = 8081693 # something
+    # print('Counting all IDTF lines')
+    # total_lines = total_IDTF_lines()
+    print('All lines: ', str(total_lines))
     sample_size = min(total_lines,sample_size)
     sample_indices = random.sample(xrange(total_lines),sample_size)
     sample_indices.sort()
@@ -86,21 +89,37 @@ def total_IDTF_lines():
     return total_lines
 
 
-def computeIDTFs(training_samples, VID_DIR):
+def computeIDTFs(training_samples, VID_DIR, dataset):
     """
     Computes the IDTFs specifically used for constructing the GMM
     training_samples is a list of videos located at the VID_DIR directory.
     The IDT features are output in the GMM_dir.
     """
-    for video in training_samples:
-        videoLocation = os.path.join(VID_DIR,video)
-        featureOutput = os.path.join(GMM_dir,os.path.basename(video)[:-4]+".features")
-        print "Computing IDTF for %s" % (video)
-        computeIDTF.extract(videoLocation, featureOutput)
-        print "complete."  
+    if dataset == "UCF101":
+        for video in training_samples:
+            print(VID_DIR)
+            print(video)
+            # input('...')
+            videoLocation = os.path.join(VID_DIR,video)
+            featureOutput = os.path.join(GMM_dir,os.path.basename(video)[:-4]+".features")
+            print "Computing IDTF for %s" % (video)
+            computeIDTF.extract(videoLocation, featureOutput, dataset)
+            # input('...')
+            print "complete."  
+    else:
+        for video in training_samples:
+            print(VID_DIR)
+            print(video)
+            # input('...')
+            videoLocation = os.path.join(VID_DIR,video)
+            featureOutput = os.path.join(GMM_dir,os.path.basename(video)+".features")
+            print "Computing IDTF for %s" % (video)
+            computeIDTF.extract(videoLocation, featureOutput, dataset)
+            # input('...')
+            print "complete."  
 
 
-def sampleVids(vid_list):
+def sampleVids(vid_list, dataset):
     """
     vid_list is a text file of video names and their corresponding
     class.
@@ -112,16 +131,33 @@ def sampleVids(vid_list):
     f.close()
     videos = [video.rstrip() for video in videos]
     vid_dict = {}
-    for line in videos:
-        l = line.split()
-        key = int(l[1])
-        if key not in vid_dict:
-            vid_dict[key] = []
-        vid_dict[key].append(l[0].split('/')[1])
-    
     samples = []
-    for k,v in vid_dict.iteritems():
-        samples.extend(v[:1])
+    print('Sampling vids for ', dataset)
+    if dataset == 'UCF101':
+        for line in videos:
+            l = line.split()
+            key = int(l[1])
+            if key not in vid_dict:
+                vid_dict[key] = []
+            vid_dict[key].append(l[0])
+            # vid_dict[key].append(l[0].split('/')[1])
+        for k,v in vid_dict.iteritems():
+            random.shuffle(v)
+            samples.extend(v[:20])
+    elif dataset == 'Something':
+        for line in videos:
+            l = line.split()
+            key = int(l[-1])
+            if key not in vid_dict:
+                vid_dict[key] = []
+            vid_dict[key].append(l[0])
+        for k,v in vid_dict.iteritems():
+            random.shuffle(v)
+            samples.extend(v[:40])
+    else:
+        raise ValueError('dataset should be UCF101 or Something')
+    
+    print(samples)
     return samples
 
 #python gmm.py 120 UCF101_dir train_list
@@ -131,7 +167,11 @@ if __name__ == '__main__':
     parser.add_argument("videos", help="Directory of the input videos", type=str)
     parser.add_argument("input_list", help="List of input videos from which to sample", type=str)
     parser.add_argument("gmm_out", help="Output file to save the list of gmms", type=str)
+    parser.add_argument("dataset", help="The dataset UCF101 or Something", choices=['UCF101', 'Something'], 
+        type=str)
 
+    parser.add_argument("-e", "--ex_fts", action="store_true", 
+        help="Use the existing IDTFs to produce GMM")
    # parser.add_argument("-p", "--pca", type=float, help="percent of original descriptor components to retain after PCA")
     parser.add_argument("-p", "--pca", action="store_true",
         help="Reduce each descriptor dimension by 50 percent using PCA")
@@ -141,15 +181,30 @@ if __name__ == '__main__':
     print args.videos
     print args.input_list
     print args.gmm_out
+    print args.dataset
 
     VID_DIR = args.videos
     input_list = args.input_list
 
-    vid_samples = sampleVids(input_list)
-
-    #computeIDTFs(vid_samples, VID_DIR)
     features = []
-    for vid in vid_samples:
-        features.append(vid[:-4]+".features")
+    if not args.ex_fts:
+        # == Use computed IDTFs
+        print('Using real time IDTFs')
+        vid_samples = sampleVids(input_list, args.dataset)
+        computeIDTFs(vid_samples, VID_DIR, args.dataset)
+        if not args.dataset == "Something":
+            for vid in vid_samples:
+                features.append(os.path.basename(vid)[:-4]+".features")
+        else:
+            for vid in vid_samples:
+                features.append(os.path.basename(vid)+".features")
+    else:
+        # == Use existent IDTFs
+        print('Using existing IDTFs')
+        exist_features = glob.glob(GMM_dir+'/*')
+        for existed in exist_features:
+            features.append(os.path.basename(existed))
+    print(features)
+    # input('..')
     populate_gmms(features,args.gmm_out,args.k_gmm,PCA=args.pca)
 

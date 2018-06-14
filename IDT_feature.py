@@ -49,7 +49,14 @@ class vid_descriptors(object):
 		hofs = []
 		mbhxs = []
 		mbhys = []
+		print(len(IDTFeatures))
 		for feature in IDTFeatures:
+			# print("====")
+			print(np.array(feature.traj).shape)
+			print(np.array(feature.hog).shape)
+			print(np.array(feature.hof).shape)
+			print(np.array(feature.mbhx).shape)
+			print(np.array(feature.mbhy).shape)
 			trajs.append(np.ndarray(shape=(1,TRAJ_DIM), buffer=np.array(feature.traj),dtype=float))
 			hogs.append(np.ndarray(shape=(1,HOG_DIM), buffer=np.array(feature.hog),dtype=float))
 			hofs.append(np.ndarray(shape=(1,HOF_DIM), buffer=np.array(feature.hof),dtype=float))
@@ -120,7 +127,9 @@ def list_descriptors_sampled(directory, vid_features, validIndices):
     for vid_feature in vid_features:
         print vid_feature
         points, current_line, VI_index = read_file(vid_feature, current_line, VI_index)
-        vid_descs.append(vid_descriptors(points))
+        print('points:', len(points))
+        if not len(points) == 0:
+            vid_descs.append(vid_descriptors(points))
     return vid_descs
 
 

@@ -13,7 +13,7 @@ from sklearn.multiclass import OneVsRestClassifier
 import sklearn.metrics as metrics
 import matplotlib.pyplot as plt
 
-class_index_file = "/Users/Bryan/CS/CS_Research/code/CS221/class_index.npz"
+class_index_file = "/home/xinqizhu/repo/CS221_Project/class_index.npz"
 class_index_file_loaded = np.load(class_index_file)
 class_index = class_index_file_loaded['class_index'][()]
 index_class = class_index_file_loaded['index_class'][()]
@@ -21,16 +21,41 @@ index_class = class_index_file_loaded['index_class'][()]
 
 # In[7]:
 
-training_output = '/Users/Bryan/CS/CS_Research/code/CS221/UCF101_Fishers/train'
-testing_output = '/Users/Bryan/CS/CS_Research/code/CS221/UCF101_Fishers/test'
+training_output = '/home/xinqizhu/repo/CS221_Project/UCF101_Fishers/train'
+testing_output = '/home/xinqizhu/repo/CS221_Project/UCF101_Fishers/test'
 
 ################################################################
 # Useful Helper functions                                      #
 ################################################################
 
+# Xinqi Zhu modified:
+def get_vid_class(vid_class_list, index_class, dataset):
+    with open(vid_class_list, 'r') as f:
+        content = f.readlines()
+    vid_class_dict = dict()
+    if dataset == 'UCF101':
+        for line in content:
+            line_s = string.lower(line.strip()).split(' ')
+            vid_class_dict[line_s[0].split('/')[1].split('.')[0]] = index_class[int(line_s[-1])]
+    else:
+        for line in content:
+            line_s = string.lower(line.strip()).split(' ')
+            vid_class_dict[line_s[0]] = index_class[int(line_s[-1])]
+
+    return vid_class_dict
+
+def toDict(videos, vid_class):
+    videos_by_class = dict()
+    for video in videos:
+        name = string.lower(video.split('.')[0])
+        # name = video
+        if vid_class[name] not in videos_by_class:
+            videos_by_class[vid_class[name]] = []
+        videos_by_class[vid_class[name]].append(video)
+    return videos_by_class
 
 #Transforms a list of videos into a dictionary of video name (in lower case) to list of videos.
-def toDict(videos):
+def toDict_old(videos):
     videos_by_class = dict()
     for video in videos:
         #we assume each of the videos has the following format: 
@@ -71,7 +96,7 @@ def split_inputData(videos, percentage):
 # videos:  is a list of fisher.npz files
 # fisher_path: path to the fisher vector directory
 # class_index: dictionary from video name to the class.
-def make_FV_matrix(videos, fisher_path, class_index):
+def make_FV_matrix_old(videos, fisher_path, class_index):
     matrix = []
     target = []
     for video in videos:
@@ -82,6 +107,17 @@ def make_FV_matrix(videos, fisher_path, class_index):
     X = np.vstack(matrix)
     Y = np.array(target)
     return (X,Y)
+
+def make_FV_matrix(videos, fisher_path, class_index, vid_class):
+    matrix = []
+    target = []
+    for video in videos:
+        vid_path = os.path.join(fisher_path, video)
+        matrix.append(np.load(vid_path)['fish'])
+        target.append(class_index[vid_class[string.lower(video).split('.')[0]]])
+    X = np.vstack(matrix)
+    Y = np.array(target)
+    return (X, Y)
 
 
 #Given a dictionary of 'Class name' to list of .fisher files,

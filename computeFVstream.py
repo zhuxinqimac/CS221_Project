@@ -24,7 +24,9 @@ if __name__ == '__main__':
    gmm_list = np.load(args.gmm_list+".npz")['gmm_list']
    points = [] # a list of IDT features.
    for line in sys.stdin:
-      points.append(IDT_feature.IDTFeature(line))
+      # print('This line: ', line)
+      if line[0].isdigit():
+          points.append(IDT_feature.IDTFeature(line))
    video_desc = IDT_feature.vid_descriptors(points)
    computeFV.create_fisher_vector(gmm_list, video_desc, args.fisher_path)
 

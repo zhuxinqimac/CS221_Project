@@ -1,22 +1,42 @@
 #!/bin/bash
 
-UCF_DIR="/Users/Bryan/CS/CS_Research/data/UCF101/"
-TRAIN_LIST="/Users/Bryan/CS/CS_Research/data/class_attributes_UCF101/ucfTrainTestlist/trainlist01.txt"
-GMM_OUT="/Users/Bryan/CS/CS_Research/code/CS221/UCF101_Fishers/gmm_list"
+# === Something config
+DATA_DIR="/home/xinqizhu/Something_frames"
+TRAIN_LIST="/home/xinqizhu/repo/TRN-pytorch/video_datasets/something/train_videofolder.txt"
+GMM_OUT="/home/xinqizhu/repo/CS221_Project/Something_Fishers/gmm_list"
+DATASET="Something"
 
-python gmm.py 120 $UCF_DIR $TRAIN_LIST $GMM_OUT --pca
+trainlist01="/home/xinqizhu/repo/TRN-pytorch/video_datasets/something/train_videofolder.txt"
+testlist01="/home/xinqizhu/repo/TRN-pytorch/video_datasets/something/val_videofolder.txt"
 
-trainlist01="/Users/Bryan/CS/CS_Research/data/class_attributes_UCF101/ucfTrainTestlist/trainlist01.txt"
-testlist01="/Users/Bryan/CS/CS_Research/data/class_attributes_UCF101/ucfTrainTestlist/testlist01.txt"
+training_output="/home/xinqizhu/repo/CS221_Project/Something_Fishers/train"
+testing_output="/home/xinqizhu/repo/CS221_Project/Something_Fishers/test"
 
-training_output="/Users/Bryan/CS/CS_Research/code/CS221/UCF101_Fishers/train"
-testing_output="/Users/Bryan/CS/CS_Research/code/CS221/UCF101_Fishers/test"
-
-python computeFVs.py $UCF_DIR $trainlist01 $training_output $GMM_OUT
-python computeFVs.py $UCF_DIR $testlist01 $testing_output $GMM_OUT
-
-CLASS_INDEX="/Users/Bryan/CS/CS_Research/data/class_attributes_UCF101/Class_Index.txt"
+CLASS_INDEX="/home/xinqizhu/repo/TRN-pytorch/video_datasets/something/category.txt"
 CLASS_INDEX_OUT="./class_index"
-python compute_UCF101_class_index.py $CLASS_INDEX $CLASS_INDEX_OUT
 
-python classify_experiment.py
+# === UCF101 config
+##DATA_DIR="/home/xinqizhu/UCF101_frames_shuffled"
+#DATA_DIR="/home/xinqizhu/UCF101_frames"
+#TRAIN_LIST="/home/xinqizhu/ucfTrainTestlist/trainlist01.txt"
+#GMM_OUT="/home/xinqizhu/repo/CS221_Project/UCF101_Fishers_shuffled/gmm_list"
+#DATASET="UCF101"
+
+#trainlist01="/home/xinqizhu/ucfTrainTestlist/trainlist01.txt"
+#testlist01="/home/xinqizhu/ucfTrainTestlist/testlist01.txt"
+
+#training_output="/home/xinqizhu/repo/CS221_Project/UCF101_Fishers_shuffled/train"
+#testing_output="/home/xinqizhu/repo/CS221_Project/UCF101_Fishers_shuffled/test"
+
+#CLASS_INDEX="/home/xinqizhu/ucfTrainTestlist/classInd.txt"
+#CLASS_INDEX_OUT="./class_index"
+
+python gmm.py 256 $DATA_DIR $TRAIN_LIST $GMM_OUT $DATASET --pca
+
+python computeFVs.py $DATA_DIR $trainlist01 $training_output $GMM_OUT $DATASET
+python computeFVs.py $DATA_DIR $testlist01 $testing_output $GMM_OUT $DATASET
+
+python compute_class_index.py $CLASS_INDEX $CLASS_INDEX_OUT $DATASET
+
+python classify_experiment.py $training_output $testing_output 10 1000 "./Something_Fishers"
+
